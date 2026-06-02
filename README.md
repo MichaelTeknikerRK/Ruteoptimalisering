@@ -4,20 +4,6 @@ Et lite, gratis webverktøy for feltarbeid: start fra din egen posisjon, lim inn
 alle adressene rått, og få korteste rekkefølge som en ferdig Google Maps-rute.
 Ingen innlogging, ingen API-nøkkel, ingen backend — alt kjører i nettleseren.
 
-## Slik hoster du på GitHub Pages
-
-1. Lag et nytt repo, f.eks. `ruteoptimalisering` (kan være privat eller offentlig).
-2. Last opp `index.html` i roten av repoet. (Filen *må* hete `index.html`.)
-3. Gå til **Settings → Pages**.
-4. Under **Build and deployment → Source**, velg **Deploy from a branch**.
-5. Velg branch `main` og mappe `/ (root)`, og trykk **Save**.
-6. Vent 1–2 minutter. Siden ligger nå på:
-   `https://<brukernavn>.github.io/<repo>/`
-
-Siden serveres over **HTTPS**, og det er nettopp det som trengs for at både
-GPS-posisjon og adressevalidering skal virke. Åpner du `index.html` som ren lokal
-fil (`file://`) blokkerer nettleseren ofte disse — bruk derfor den hostede URL-en.
-
 ### På mobil
 Åpne URL-en i nettleseren og velg «Legg til på Hjem-skjerm». Da oppfører den seg
 som en app i felt.
