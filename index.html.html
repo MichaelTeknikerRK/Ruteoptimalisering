@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ruteoptimalisering · Google Maps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe4; --paper-2:#ece4d4; --ink:#1d231f; --ink-soft:#535b53;
+    --line:#d6cbb4; --accent:#d8572a; --accent-d:#b8421b; --teal:#16504b;
+    --gold:#bd8b2b; --err:#b03a2e; --ok:#2f7d4f; --radius:14px;
+    --shadow:0 1px 2px rgba(29,35,31,.06), 0 8px 24px rgba(29,35,31,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"Familjen Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(22,80,75,.05), transparent 38%),
+      radial-gradient(circle at 88% 82%, rgba(216,87,42,.06), transparent 42%),
+      repeating-radial-gradient(circle at 50% 50%, transparent 0 38px, rgba(29,35,31,.022) 38px 39px);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 80px}
+  header{margin-bottom:26px}
+  .kicker{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent-d);font-weight:500}
+  h1{font-size:clamp(30px,7vw,46px);line-height:.98;letter-spacing:-.02em;font-weight:700;margin-top:8px}
+  h1 .dot{color:var(--accent)}
+  .sub{color:var(--ink-soft);margin-top:10px;max-width:48ch;font-size:15px}
+  .card{background:linear-gradient(180deg,#fbf7ee,#f4efe4);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
+  label.fld{display:block;font-weight:600;font-size:13px;margin-bottom:7px;letter-spacing:.01em}
+  label.fld .hint{font-weight:400;color:var(--ink-soft);font-size:12px}
+  input[type=text], textarea, select{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    background:#fffdf8;border:1px solid var(--line);border-radius:10px;padding:12px 13px;outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  textarea{resize:vertical;min-height:150px;line-height:1.55}
+  input:focus, textarea:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(216,87,42,.13)}
+  .startbox{display:flex;align-items:center;gap:13px;background:#fffdf8;border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .startbox .ic{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .startbox .ic.pending{background:var(--paper-2);color:var(--ink-soft)}
+  .startbox .txt{flex:1;min-width:0}
+  .startbox .txt .t{font-weight:600;font-size:14px}
+  .startbox .txt .d{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-soft);margin-top:2px;word-break:break-word}
+  .startbox .act{flex:0 0 auto}
+  .mini{font-family:inherit;font-size:13px;font-weight:600;padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#fffdf8;color:var(--teal);cursor:pointer}
+  .mini:hover{border-color:var(--teal)}
+  .mini.busy{opacity:.6;cursor:default}
+  .toggle-manual{display:inline-block;margin-top:9px;font-size:12.5px;color:var(--accent-d);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  #manualWrap{display:none;margin-top:10px}
+  .opt{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--ink);cursor:pointer;user-select:none;margin-top:16px}
+  .opt input{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .btn{font-family:inherit;font-weight:600;font-size:15px;padding:14px 22px;border-radius:11px;border:0;cursor:pointer;transition:transform .08s, background .15s;display:inline-flex;align-items:center;gap:9px}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(216,87,42,.28)}
+  .btn-primary:hover{background:var(--accent-d)}
+  .btn-primary:disabled{background:#c9b9a3;box-shadow:none;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line)}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--ink-soft)}
+  .btn-maps{background:var(--teal);color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(22,80,75,.25)}
+  .btn-maps:hover{background:#0f3d39}
+  #status{margin-top:16px;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);min-height:20px}
+  .bar{height:6px;background:var(--paper-2);border-radius:99px;overflow:hidden;margin-top:10px;display:none}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--accent));transition:width .25s}
+  #results{display:none}
+  .summary{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline;margin-bottom:18px;padding-bottom:16px;border-bottom:1px dashed var(--line)}
+  .stat .n{font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:700;color:var(--ink)}
+  .stat .n.acc{color:var(--accent)}
+  .stat .l{font-size:12px;color:var(--ink-soft);letter-spacing:.04em;text-transform:uppercase;font-family:"JetBrains Mono",monospace}
+  .warnstrip{display:none;background:#fdf3e3;border:1px solid #e8cd97;color:#8a5a12;border-radius:10px;padding:10px 13px;font-size:13px;margin-bottom:16px}
+  ol#route{list-style:none}
+  li.stop{display:flex;align-items:flex-start;gap:13px;padding:13px 0;border-bottom:1px solid var(--line)}
+  li.stop:last-child{border-bottom:0}
+  .pin{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  li.stop.start .pin{background:var(--teal)}
+  li.stop.endhome .pin{background:var(--gold)}
+  li.stop.bad .pin{background:#c9b9a3}
+  .info{flex:1;min-width:0}
+  .info .addr{font-size:15px;font-weight:500;word-break:break-word}
+  .info .resolved{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-soft);margin-top:3px;word-break:break-word}
+  .info .resolved.bad{color:var(--err)}
+  .info .resolved.ok::before{content:"✓ ";color:var(--ok)}
+  select.cand{margin-top:7px;font-size:12.5px;padding:7px 9px;max-width:100%}
+  .fixrow{display:flex;gap:8px;margin-top:8px}
+  .fixrow input{flex:1;font-size:13.5px;padding:9px 11px}
+  .fixrow button{flex:0 0 auto;font-family:inherit;font-weight:600;font-size:13px;padding:9px 13px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+  .fixrow button:hover{background:var(--accent-d)}
+  .move{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+  .move button{width:28px;height:22px;border:1px solid var(--line);background:#fffdf8;border-radius:6px;cursor:pointer;color:var(--ink-soft);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .move button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .move button:disabled{opacity:.3;cursor:default}
+  .maps-links{margin-top:20px;display:flex;flex-direction:column;gap:10px}
+  .note{font-size:12.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5}
+  .note b{color:var(--ink)}
+  .badge{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10.5px;padding:2px 7px;border-radius:6px;background:var(--paper-2);color:var(--ink-soft);margin-left:6px;vertical-align:middle}
+  .err-box{background:#fbe9e6;border:1px solid #e7b8af;color:#8c2d20;border-radius:10px;padding:12px 14px;font-size:13.5px;margin-top:14px;line-height:1.5}
+  footer{text-align:center;color:var(--ink-soft);font-size:12px;margin-top:30px;font-family:"JetBrains Mono",monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Felt · Rute · Google Maps</div>
+    <h1>Ruteoptimalisering<span class="dot">.</span></h1>
+    <p class="sub">Start fra din egen posisjon, dump inn alle adressene rått — verktøyet validerer, retter og finner korteste rekkefølge.</p>
+  </header>
+
+  <div class="card">
+    <label class="fld">Startpunkt</label>
+    <div class="startbox">
+      <div class="ic pending" id="startIc">📍</div>
+      <div class="txt">
+        <div class="t" id="startT">Posisjon ikke hentet</div>
+        <div class="d" id="startD">Trykk for å bruke din nåværende posisjon</div>
+      </div>
+      <div class="act"><button class="mini" id="locBtn">Bruk min posisjon</button></div>
+    </div>
+    <span class="toggle-manual" id="toggleManual">…eller skriv inn startadresse manuelt</span>
+    <div id="manualWrap"><input type="text" id="startManual" placeholder="F.eks. Rådhusplassen 2, Mo i Rana" autocomplete="off"></div>
+
+    <div style="margin-top:20px">
+      <label class="fld" for="area">Sted / kommune <span class="hint">– valgfritt, men gir mye bedre treff (legges til adresser som mangler det)</span></label>
+      <input type="text" id="area" placeholder="F.eks. Mo i Rana" autocomplete="off">
+    </div>
+
+    <div style="margin-top:18px">
+      <label class="fld" for="stops">Stopp <span class="hint">– lim inn rått, én per linje. Nummerering/punkt blir ryddet vekk</span></label>
+      <textarea id="stops" placeholder="Lim inn alt her, f.eks.:
+
+1. Brennåsveien 98
+- Granhaugen 4
+• Heggveien 7
+Jernveien 1D"></textarea>
+    </div>
+
+    <label class="opt"><input type="checkbox" id="roundtrip" checked> Tilbake til start (rundtur)</label>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="go">Optimaliser rute</button>
+      <button class="btn btn-ghost" id="clear">Tøm</button>
+    </div>
+
+    <div id="status"></div>
+    <div class="bar" id="bar"><i></i></div>
+    <div id="errbox"></div>
+  </div>
+
+  <div class="card" id="results">
+    <div class="warnstrip" id="warnstrip"></div>
+    <div class="summary">
+      <div class="stat"><div class="n acc" id="stStops">0</div><div class="l">stopp</div></div>
+      <div class="stat"><div class="n" id="stDist">0</div><div class="l">km luftlinje*</div></div>
+      <div class="stat"><div class="n" id="stImp">0%</div><div class="l">kortere enn opprinnelig</div></div>
+    </div>
+    <ol id="route"></ol>
+    <div class="maps-links" id="mapsLinks"></div>
+    <p class="note">* Luftlinje brukes til optimalisering (rask, gratis). Google Maps regner faktisk kjøreavstand når du åpner ruten. Velg riktig treff i nedtrekkslistene ved tvil, rett opp adresser som ikke ble funnet, eller bruk pilene for å finjustere.</p>
+  </div>
+
+  <footer>Geokoding: OpenStreetMap / Nominatim · Optimalisering: nærmeste-nabo + 2-opt · Kjører lokalt i nettleseren</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const MODE = "driving";
+
+  const store = {
+    get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+    set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+  };
+  const $ = s => document.querySelector(s);
+  const stopsEl=$("#stops"), areaEl=$("#area"), rtEl=$("#roundtrip"), goBtn=$("#go"), clearBtn=$("#clear");
+  const statusEl=$("#status"), bar=$("#bar"), barI=bar.querySelector("i"), errBox=$("#errbox");
+  const results=$("#results"), routeOl=$("#route"), mapsLinks=$("#mapsLinks"), warnstrip=$("#warnstrip");
+  const stStops=$("#stStops"), stDist=$("#stDist"), stImp=$("#stImp");
+  const locBtn=$("#locBtn"), startIc=$("#startIc"), startT=$("#startT"), startD=$("#startD");
+  const toggleManual=$("#toggleManual"), manualWrap=$("#manualWrap"), startManual=$("#startManual");
+
+  let startState = null; // {lat,lng} | {q:text} | null
+
+  // ---------- restore ----------
+  areaEl.value = store.get("ro_area") || "";
+  areaEl.addEventListener("change", () => store.set("ro_area", areaEl.value.trim()));
+  if(store.get("ro_rt") === "0") rtEl.checked = false;
+  rtEl.addEventListener("change", () => store.set("ro_rt", rtEl.checked ? "1":"0"));
+
+  // ---------- start: geolocation / manual ----------
+  toggleManual.addEventListener("click", () => {
+    manualWrap.style.display = manualWrap.style.display==="block" ? "none":"block";
+    if(manualWrap.style.display==="block") startManual.focus();
+  });
+  startManual.addEventListener("input", () => {
+    const v=startManual.value.trim();
+    if(v){ startState={q:v}; startIc.classList.add("pending"); startIc.textContent="✎";
+      startT.textContent="Manuelt startpunkt"; startD.textContent=v; store.set("ro_start",v); }
+  });
+  startManual.value = store.get("ro_start") || "";
+  if(startManual.value.trim()) startManual.dispatchEvent(new Event("input"));
+
+  locBtn.addEventListener("click", () => {
+    if(!navigator.geolocation){ locFail("Nettleseren støtter ikke posisjon"); return; }
+    locBtn.classList.add("busy"); locBtn.textContent="Henter…";
+    navigator.geolocation.getCurrentPosition(pos => {
+      const {latitude:lat, longitude:lng}=pos.coords;
+      startState={lat,lng};
+      startIc.classList.remove("pending"); startIc.textContent="📍";
+      startT.textContent="Min posisjon"; startD.textContent=lat.toFixed(5)+", "+lng.toFixed(5);
+      locBtn.classList.remove("busy"); locBtn.textContent="Oppdater"; manualWrap.style.display="none";
+      reverseGeocode(lat,lng).then(n=>{ if(n && startState && startState.lat===lat) startD.textContent=n; }).catch(()=>{});
+    }, err => {
+      locBtn.classList.remove("busy"); locBtn.textContent="Bruk min posisjon";
+      locFail(err.code===1 ? "Posisjon avslått – tillat det, eller skriv inn manuelt":"Fikk ikke posisjon – skriv inn manuelt");
+      manualWrap.style.display="block";
+    }, {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
+  });
+  function locFail(m){ startIc.classList.add("pending"); startIc.textContent="⚠"; startT.textContent="Posisjon ikke tilgjengelig"; startD.textContent=m; }
+
+  clearBtn.addEventListener("click", () => {
+    stopsEl.value=""; results.style.display="none"; statusEl.textContent=""; errBox.innerHTML=""; stopsEl.focus();
+  });
+
+  // ---------- parsing ----------
+  function parseAddresses(text){
+    return text.split(/[\n;]+/)
+      .map(s=>s.replace(/^\s*(?:\d+[\.\)]\s*|[-–•*]\s*)/,"").replace(/\s{2,}/g," ").trim())
+      .filter(s=>s.length>=2)
+      .filter((s,i,a)=>a.findIndex(x=>x.toLowerCase()===s.toLowerCase())===i);
+  }
+
+  // ---------- geometry / optimize ----------
+  const R=6371, rad=d=>d*Math.PI/180;
+  function haversine(a,b){const dLat=rad(b.lat-a.lat),dLon=rad(b.lng-a.lng);
+    const s=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));}
+  function pathLen(p,c){let d=0;for(let i=0;i<p.length-1;i++)d+=haversine(p[i],p[i+1]);if(c&&p.length>1)d+=haversine(p[p.length-1],p[0]);return d;}
+  function optimize(points,closed){
+    const n=points.length; if(n<=2) return points.map((_,i)=>i);
+    const D=Array.from({length:n},()=>new Array(n).fill(0));
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){D[i][j]=D[j][i]=haversine(points[i],points[j]);}
+    const used=new Array(n).fill(false); used[0]=true; const order=[0]; let cur=0;
+    for(let k=1;k<n;k++){let b=-1,bd=Infinity;for(let j=0;j<n;j++)if(!used[j]&&D[cur][j]<bd){bd=D[cur][j];b=j;}order.push(b);used[b]=true;cur=b;}
+    let imp=true,g=0;
+    while(imp&&g++<200){imp=false;const last=closed?order.length:order.length-1;
+      for(let i=1;i<order.length-1;i++)for(let j=i+1;j<last;j++){
+        const a=order[i-1],b=order[i],c=order[j],d=order[(j+1)%order.length];
+        if(D[a][c]+D[b][d]+1e-9<D[a][b]+D[c][d]){let lo=i,hi=j;while(lo<hi){const t=order[lo];order[lo]=order[hi];order[hi]=t;lo++;hi--;}imp=true;}
+      }}
+    return order;
+  }
+
+  // ---------- geocoding (rate-gated, multi-strategy, candidates) ----------
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  let lastCall=0;
+  async function gate(){ const w=Math.max(0,1100-(Date.now()-lastCall)); if(w) await sleep(w); lastCall=Date.now(); }
+  async function nomSearch(q){
+    await gate();
+    const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&countrycodes=no&q="+encodeURIComponent(q);
+    const res=await fetch(url,{headers:{"Accept":"application/json"}});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    return (data||[]).map(d=>({lat:+d.lat,lng:+d.lon,name:d.display_name,short:d.display_name.split(",").slice(0,3).join(", ")}));
+  }
+  function buildTries(addr,area){
+    const tries=[]; const hasArea=area && addr.toLowerCase().includes(area.toLowerCase());
+    tries.push(addr);
+    if(area && !hasArea) tries.push(addr+", "+area);
+    const loose=addr.replace(/(\d+)\s*[A-Za-z]\b/,"$1"); // "1D" -> "1"
+    if(loose!==addr) tries.push(loose+(area && !hasArea ? ", "+area : ""));
+    return [...new Set(tries)];
+  }
+  async function smartGeocode(addr,area){
+    for(const t of buildTries(addr,area)){
+      const cands=await nomSearch(t);
+      if(cands.length) return cands;
+    }
+    return [];
+  }
+  async function reverseGeocode(lat,lng){
+    await gate();
+    const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lng;
+    const res=await fetch(url,{headers:{"Accept":"application/json"}}); if(!res.ok) return null;
+    const d=await res.json(); return d&&d.display_name ? d.display_name.split(",").slice(0,3).join(", "):null;
+  }
+
+  // ---------- Google Maps URL ----------
+  const coordStr=p=>p.lat.toFixed(6)+","+p.lng.toFixed(6);
+  function mapsUrl(pts){
+    const enc=p=>p.q?encodeURIComponent(p.q):coordStr(p);
+    let u="https://www.google.com/maps/dir/?api=1&travelmode="+MODE+"&origin="+enc(pts[0])+"&destination="+enc(pts[pts.length-1]);
+    const wp=pts.slice(1,-1).map(enc).join("|");
+    if(wp) u+="&waypoints="+encodeURIComponent(wp).replace(/%2C/g,",");
+    return u;
+  }
+  const MAX_PER_LINK=10;
+  function buildLinks(pts){
+    const links=[]; if(pts.length<=MAX_PER_LINK){links.push({label:"Åpne rute i Google Maps",url:mapsUrl(pts)});return links;}
+    let i=0,part=1; while(i<pts.length-1){const c=pts.slice(i,i+MAX_PER_LINK);
+      links.push({label:"Åpne del "+part+" (stopp "+(i+1)+"–"+(i+c.length)+")",url:mapsUrl(c)}); i+=MAX_PER_LINK-1; part++;}
+    return links;
+  }
+
+  // ---------- state build + render ----------
+  let state=null;
+  function buildState(nodes,closed){
+    const geoNodes=nodes.filter(n=>n.geo);
+    let order;
+    if(geoNodes.length>=2){
+      const lo=optimize(geoNodes.map(n=>n.geo),closed);
+      const refs=lo.map(i=>geoNodes[i]).concat(nodes.filter(n=>!n.geo));
+      order=refs.map(r=>nodes.indexOf(r));
+      const si=order.indexOf(0); if(si>0){order.splice(si,1);order.unshift(0);}
+    } else order=nodes.map((_,i)=>i);
+    return {nodes,order,closed};
+  }
+  function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+  function render(){
+    const {nodes,order}=state;
+    routeOl.innerHTML="";
+    const orderedGeo=[];
+    let notFound=0;
+    order.forEach((idx,pos)=>{
+      const node=nodes[idx];
+      const li=document.createElement("li");
+      const bad=!node.geo;
+      li.className="stop"+(pos===0?" start":"")+(bad?" bad":"");
+      const pinTxt=pos===0?"▶":String(pos);
+      let html='<div class="pin">'+pinTxt+'</div><div class="info"><div class="addr">'+escapeHtml(node.addr)+(pos===0?' <span class="badge">START</span>':'')+'</div>';
+      if(node.geo){
+        orderedGeo.push(node.geo);
+        const cls = node.gps ? "resolved" : "resolved ok";
+        html+='<div class="'+cls+'">'+(node.gps?"📍 ":"")+escapeHtml(node.geo.short)+'</div>';
+        if(node.candidates && node.candidates.length>1){
+          html+='<select class="cand" data-idx="'+idx+'">'+
+            node.candidates.map((c,ci)=>'<option value="'+ci+'"'+(c===node.geo?' selected':'')+'>'+escapeHtml(c.short)+'</option>').join("")+
+            '</select>';
+        }
+      } else {
+        notFound++;
+        html+='<div class="resolved bad">⚠ Ikke funnet – rett opp og søk igjen</div>'+
+          '<div class="fixrow"><input type="text" data-fix="'+idx+'" value="'+escapeHtml(node.addr)+'"><button data-research="'+idx+'">Søk</button></div>';
+      }
+      html+='</div><div class="move">'+
+        '<button data-dir="-1" data-pos="'+pos+'" '+(pos<=1?'disabled':'')+'>▲</button>'+
+        '<button data-dir="1" data-pos="'+pos+'" '+(pos===0||pos===order.length-1?'disabled':'')+'>▼</button></div>';
+      li.innerHTML=html;
+      routeOl.appendChild(li);
+    });
+
+    let linkPts=orderedGeo.slice();
+    if(state.closed){
+      const home=nodes[order[0]];
+      linkPts=orderedGeo.concat([home.geo||{q:home.addr}]);
+      const li=document.createElement("li"); li.className="stop endhome";
+      li.innerHTML='<div class="pin">⌂</div><div class="info"><div class="addr">'+escapeHtml(home.addr)+' <span class="badge">RETUR</span></div><div class="resolved">Tilbake til start</div></div><div class="move"></div>';
+      routeOl.appendChild(li);
+    }
+
+    // warn strip
+    if(notFound>0){ warnstrip.style.display="block";
+      warnstrip.innerHTML="⚠ <b>"+notFound+" adresse"+(notFound>1?"r":"")+" ble ikke funnet.</b> Legg inn sted/kommune over og kjør på nytt, eller rett opp under og trykk «Søk»."; }
+    else warnstrip.style.display="none";
+
+    const geoPts=orderedGeo.filter(p=>p.lat!==undefined);
+    stStops.textContent=order.length-1;
+    if(geoPts.length>=2){
+      const cur=pathLen(geoPts,state.closed); stDist.textContent=cur.toFixed(1);
+      const orig=nodes.map(n=>n.geo).filter(Boolean); const ol=pathLen(orig,state.closed);
+      stImp.textContent=(ol>0?Math.max(0,Math.round((1-cur/ol)*100)):0)+"%";
+    } else { stDist.textContent="–"; stImp.textContent="–"; }
+
+    mapsLinks.innerHTML="";
+    if(linkPts.length>MAX_PER_LINK){const w=document.createElement("p");w.className="note";
+      w.innerHTML="<b>"+linkPts.length+" stopp</b> – Google Maps tar maks ~10 per lenke, så ruten er delt opp.";mapsLinks.appendChild(w);}
+    buildLinks(linkPts).forEach(l=>{const a=document.createElement("a");a.className="btn btn-maps";a.href=l.url;a.target="_blank";a.rel="noopener";a.innerHTML="🗺️ "+l.label;mapsLinks.appendChild(a);});
+    results.style.display="block";
+  }
+
+  // candidate switch
+  routeOl.addEventListener("change", e=>{
+    const sel=e.target.closest("select.cand"); if(!sel) return;
+    const node=state.nodes[+sel.dataset.idx]; node.geo=node.candidates[+sel.value]; render();
+  });
+  // move up/down
+  routeOl.addEventListener("click", async e=>{
+    const mv=e.target.closest("button[data-dir]");
+    if(mv){ const pos=+mv.dataset.pos, np=pos+(+mv.dataset.dir);
+      if(np<1||np>=state.order.length) return;
+      const o=state.order; [o[pos],o[np]]=[o[np],o[pos]]; render(); return; }
+    const re=e.target.closest("button[data-research]");
+    if(re){ const idx=+re.dataset.research; const inp=routeOl.querySelector('input[data-fix="'+idx+'"]');
+      const val=inp.value.trim(); if(!val) return;
+      re.textContent="…"; re.disabled=true;
+      try{
+        const cands=await smartGeocode(val,areaEl.value.trim());
+        const node=state.nodes[idx]; node.addr=val;
+        if(cands.length){ node.candidates=cands; node.geo=cands[0]; state=buildState(state.nodes,state.closed); }
+        render();
+      }catch(err){ re.textContent="Søk"; re.disabled=false; }
+    }
+  });
+
+  // ---------- main ----------
+  goBtn.addEventListener("click", run);
+  async function run(){
+    errBox.innerHTML="";
+    if(!startState){ flash("Hent posisjon eller skriv inn startadresse."); return; }
+    const area=areaEl.value.trim(); store.set("ro_area",area);
+    const stops=parseAddresses(stopsEl.value);
+    if(stops.length===0){ flash("Lim inn minst én adresse."); stopsEl.focus(); return; }
+
+    const startNode = startState.lat!==undefined
+      ? {addr:"Min posisjon", gps:true, geo:{lat:startState.lat,lng:startState.lng,name:"Min posisjon",short:(startD.textContent||"Min posisjon")}, candidates:null}
+      : {addr:startState.q, gps:false, geo:null, candidates:null};
+    const nodes=[startNode, ...stops.map(a=>({addr:a, gps:false, geo:null, candidates:null}))];
+
+    goBtn.disabled=true; goBtn.textContent="Validerer…"; bar.style.display="block"; barI.style.width="0%";
+    let networkDead=false;
+    const toGeo=nodes.filter(n=>!n.geo);
+    for(let i=0;i<toGeo.length;i++){
+      statusEl.textContent="Validerer "+(i+1)+"/"+toGeo.length+":  "+toGeo[i].addr;
+      try{ const c=await smartGeocode(toGeo[i].addr,area); toGeo[i].candidates=c; toGeo[i].geo=c[0]||null; }
+      catch(e){ networkDead=true; break; }
+      barI.style.width=Math.round(((i+1)/toGeo.length)*100)+"%";
+    }
+    bar.style.display="none"; goBtn.disabled=false; goBtn.textContent="Optimaliser rute";
+
+    if(networkDead){ statusEl.textContent=""; fallback(nodes); return; }
+
+    state=buildState(nodes, rtEl.checked);
+    const nf=nodes.filter(n=>!n.geo).length;
+    statusEl.textContent = nf>0 ? "Ferdig — "+nf+" adresse(r) trenger oppretting." : "Ferdig — alle adresser validert.";
+    render();
+    results.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function fallback(nodes){
+    state={nodes:nodes.map(n=>({...n,geo:n.gps?n.geo:null})), order:nodes.map((_,i)=>i), closed:rtEl.checked};
+    render();
+    errBox.innerHTML='<div class="err-box"><b>Nettkall blokkert i denne forhåndsvisningen.</b> '+
+      'Adressevalidering og GPS krever en hostet HTTPS-side. Lenken til Google Maps virker likevel.<br><br>'+
+      '👉 Legg filen på <b>GitHub Pages</b> (gratis HTTPS) — da virker både posisjon og validering.</div>';
+    results.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  function flash(m){ statusEl.textContent="⚠ "+m; }
+})();
+</script>
+</body>
+</html>
