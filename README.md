@@ -5,7 +5,7 @@ alle adressene rått, og få korteste rekkefølge som en ferdig Google Maps-rute
 Ingen innlogging, ingen API-nøkkel, ingen backend — alt kjører i nettleseren.
 
 ### På mobil
-Åpne https://michaelteknikerrk.github.io/Ruteoptimalisering/ i nettleseren og velg «Legg til på Hjem-skjerm». Da oppfører den seg
+Åpne [Ruteoptimalisering](https://michaelteknikerrk.github.io/Ruteoptimalisering/) i nettleseren og velg «Legg til på Hjem-skjerm». Da oppfører den seg
 som en app i felt.
 
 ## Slik bruker du den
